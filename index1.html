@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        @font-face {
+            font-family: 'PokemonFont';
+            src: url('path/to/pokemon-font.woff2') format('woff2'),
+                 url('path/to/pokemon-font.woff') format('woff');
+            /* Substitua 'path/to/' pelo caminho correto onde está o arquivo da fonte */
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            cursor: url(http://www.rw-designer.com/cursor-extern.php?id=113448), auto;
+            box-sizing: border-box; 
+        }
+
+        body {
+            background-color: brown;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .content {
+            width: 80%;
+            max-width: 1200px; 
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .centro {
+            margin: 20px auto;
+        }
+
+        #pesquisar {
+            cursor: url(http://www.rw-designer.com/cursor-extern.php?id=113449), auto;
+            width: 100%;
+            max-width: 400px; 
+            height: 50px;
+            font-size: 20px;
+            padding: 10px 20px;
+            background-color: #e9e513;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+
+        button.centro {
+            width: 100%;
+            max-width: 200px; 
+            height: 50px;
+            font-size: 20px;
+            padding: 10px 20px;
+            background-color: #e9e513;
+            color: rgb(17, 17, 17);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+
+        .imgCentro {
+            display: block;
+            margin: auto;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            #pesquisar {
+                max-width: 100%; 
+            }
+
+            button.centro {
+                max-width: 100%; 
+            }
+        }
+
+        #BotaoEnviar {
+            cursor: url(http://www.rw-designer.com/cursor-extern.php?id=113450), auto;
+        }
+
+        .pokemon {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pokemon-container {
+            display: flex;
+            flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha se não couberem */
+            justify-content: center; /* Centraliza os itens na linha */
+            gap: 20px; /* Espaçamento entre os Pokémon */
+        }
+
+        .pokemon-item {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .pokemon img {
+            display: block;
+            margin: 0 auto;
+            width: 200px;
+            height: 200px;
+        }
+
+        .pokemon-name {
+            margin-top: 10px;
+            font-weight: bold;
+            color: white;
+            font-family: 'PokemonFont', Arial, sans-serif;
+            /* Aplica a fonte PokemonFont aos nomes dos Pokémon */
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <img src="Captura_de_tela_2024-06-26_145146-removebg-preview.png" alt="pokedex" class="centro">
+        <input type="text" name="Pesquise" id="pesquisar" class="centro" placeholder="Pesquise...">
+        <button id="BotaoEnviar" class="centro">Enviar</button>
+    </div>
+    <div class="pokemon imgCentro" id="pokemons">
+    </div>
+
+</body>
+<script>
+    const pesquisar = document.getElementById('pesquisar');
+    const btnEnviar = document.getElementById('BotaoEnviar');
+    const pokemons = document.getElementById('pokemons');
+
+    const fetchPokemon = (value) => {
+        const result = fetch(`https://pokeapi.co/api/v2/pokemon/${value}`)
+        .then((res) => res.json())
+        .then((data) => {
+            return data;
+        });
+
+        return result;  
+    }
+
+    const getFromChain = (pokemon) => {
+        return pokemon && pokemon["evolves_to"][0];
+    }
+
+    const getPokemonName = (pokemon) => {
+        return pokemon && pokemon["species"]["name"];
+    }
+
+
+    const getEvolutionsList = (chain) => {
+        const pokemon1 = getFromChain(chain);
+        const pokemon2 = getFromChain(pokemon1);
+        const name1 = getPokemonName(pokemon1);
+        const name2 = getPokemonName(pokemon2);
+        return [name1, name2];
+    }
+
+    const fetchEvolutions =  async (value) => {
+        const species = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${value}`);
+        const species_json = await species.json();
+        const evolution_chain = await fetch(species_json["evolution_chain"]["url"]);
+        const evolution_json = await evolution_chain.json();
+        const chain = evolution_json["chain"];
+        return [chain["species"]["name"], ...getEvolutionsList(chain)];
+    }
+
+    const fetchPokemonFrontImage = async (value) => {
+        const result = await fetchPokemon(value);
+        return result["sprites"]["front_default"];
+    }
+
+    const showEvolutions = async (event) => {
+        event.preventDefault();
+        const pokemonName = pesquisar.value.toLowerCase();
+        const evolutions = await fetchEvolutions(pokemonName);
+        pokemons.innerHTML = ``;
+        const pokemonContainer = document.createElement('div');
+        pokemonContainer.className = 'pokemon-container';
+
+        for (let i = 0; i < evolutions.length; i++) {
+            if (evolutions[i]) {
+                const pokemonItem = document.createElement('div');
+                pokemonItem.className = 'pokemon-item';
+
+                const img = document.createElement('img');
+                img.className = 'pokemon-img';
+                await fetchPokemonFrontImage(evolutions[i]).then((sprite) => {
+                    img.src = sprite;
+                    pokemonItem.appendChild(img);
+                });
+
+                const name = document.createElement('div');
+                name.className = 'pokemon-name';
+                name.textContent = evolutions[i];
+                pokemonItem.appendChild(name);
+
+                pokemonContainer.appendChild(pokemonItem);
+            }
+        }
+
+        pokemons.appendChild(pokemonContainer);
+    }
+
+    btnEnviar.addEventListener('click', showEvolutions);
+</script>
+</html>
